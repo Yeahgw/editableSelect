@@ -1,0 +1,138 @@
+define(function(require, exports, module){
+	"use strict";
+	var dropdown = function(container, data, name){
+		var _this = this;
+		_this.container = container;
+		_this.data = data ? data : [];
+		_this.name = name;
+
+		//初始化html
+		this.init();
+		//绑定事件
+		this.bindEvent();
+	};
+
+	dropdown.prototype.init = function(){
+		var data = this.data;
+		this.content = $('<div class="drop-content"></div>');
+		this.input = $('<input type="text" name="display-'+this.name+'" class="drop-result" autocomplete="off">');
+		this.btn = $('<a href="javascript:;" class="drop-btn">向下</a>');
+		this.hidden = $('<input type="hidden" class="drop-val" name="'+this.name+'" value="key2">');
+		this.list = $('<ul class="drop-list none" tabindex="1"></ul>');
+		var li_tpl = '<li class="drop-item" value="{key}"><a href="#">{val}</a></li>',
+			li = '';
+		for(var i = 0; i < data.length; i++){
+			li += li_tpl.replace(/\{key\}(.*)\{val\}/, function(match, group, index){
+				return data[i].key + group + data[i].value;
+			});
+		};
+		this.container.append(this.content.append(this.input, this.btn, this.hidden), this.list.html(li));
+	};
+
+	dropdown.prototype.showList = function(){
+		this.btn.addClass("display");
+		this.list.removeClass("none").find(".drop-item").removeClass("hide");
+		this.autoComplete();
+	};
+
+	dropdown.prototype.hideList = function(){
+		this.btn.removeClass("display");
+		this.list.addClass("none");
+		this.list.find(".drop-item").each(function(){
+			$(this).removeClass('hide');
+		});
+	};
+
+	dropdown.prototype.bindEvent = function(){
+		var _this = this;
+		//点击其他地方收起下拉列表
+		$(document).on('click.dropdown', (function(){
+			_this.hideList();
+		}));
+
+		//按钮下拉事件
+		_this.btn.click(function(evt){
+			var e = evt||window.event;
+			e.stopPropagation();
+			_this.list.toggleClass('none');
+			_this.btn.toggleClass("display");
+		});
+
+		//options点击事件
+		_this.list.on('click', '.drop-item', function(){
+			var $this = $(this);
+			_this.hidden.val($this.attr("value"));
+			_this.input.val($this.text());
+			$this.addClass("cur").siblings().removeClass("cur");
+			_this.hideList();
+		})
+		//鼠标划入添加focus状态
+		.on("mouseenter", '.drop-item', function(evt){
+			var e = evt || window.event;
+			e.stopPropagation();
+			e.preventDefault();
+			$(e.target).trigger('focus');
+		})
+		//上下键切换focus状态
+		.on('keydown', '.drop-item',function(evt){
+			var e = evt || window.event,
+				$a = _this.list.find(".drop-item:not(.hide) a"),
+				index = $a.index($(e.target)),
+				len = _this.list.find(".drop-item").length;
+
+			e.stopPropagation();
+			e.preventDefault();
+			if(e.keyCode == 13){
+				$(e.target).trigger("click");
+				_this.input.focus();
+				return;
+			}
+			if(e.keyCode == 40){index++;}
+			if(e.keyCode == 38){index--;}
+			if(index < 0){index = len -1}
+			if(index >= len){index = 0;}
+			$a.eq(index).trigger('focus');
+		});
+
+		//点击输入框事件
+		_this.input.click(function(evt){
+			var e = evt || window.event;
+			e.stopPropagation();
+			_this.showList();
+		});
+
+		_this.input.on('keydown', function(evt){
+			var e = evt || window.event;
+			//让默认事件先执行
+			setTimeout(function(){
+				_this.showList();
+				if(e.keyCode == 40){
+					_this.list.find(".drop-item:not(.hide) a").eq(0).trigger("focus");
+				}
+			}, 50);
+			_this.hidden.val($(this).val());
+		});
+	};
+
+	//TODO 输入框自动提示
+	dropdown.prototype.autoComplete = function(){
+		var reg = new RegExp(this.input.val().replace(/\\|\-|\.|\$|\^|\(|\)|\*|\?|\+|\||\]|\[|\{|\}/g, function(res, i){
+			return '\\'+res;
+		}), 'i');
+		this.list.find(".drop-item").each(function(){
+			var $this = $(this);
+			if(!reg.test($this.text())){
+				$this.addClass('hide');
+			}else{
+				$this.removeClass("hide");
+			}
+		});
+	};
+
+	function dropDown(data, name){
+		var container = this instanceof jQuery && this.length > 0 ? this : $('body');
+		return new dropdown(container, data, name);
+	};
+	$.fn.dropDown = dropDown;
+	return dropDown;
+});
