@@ -1,10 +1,31 @@
+/**
+ *
+ * 调用方式, $(".dropDown").dropDown(data, name, editable)
+ * 主要参数说明:
+ * 		@param data
+ * 			type: []
+ * 			example:[{key: 'key1',value: 'val1}]
+ * 			explain: 带有下拉选项数据的数组，key为表单提交时提交的数据，value为展示在下拉框里的文本
+ *
+ *		@param name
+ *			type: String
+ *			explain: 表单提交时用到的name属性
+ *
+ *		@param editable
+ *			type: Boolean
+ *			explain: 是否可编辑，默认为true
+ * */
+
+
+
 define(function(require, exports, module){
 	"use strict";
-	var dropdown = function(container, data, name){
+	var dropdown = function(container, data, name, editable){
 		var _this = this;
 		_this.container = container;
 		_this.data = data ? data : [];
 		_this.name = name;
+		_this.editable = editable == undefined ? true : editable;
 
 		//初始化html
 		this.init();
@@ -15,9 +36,9 @@ define(function(require, exports, module){
 	dropdown.prototype.init = function(){
 		var data = this.data;
 		this.content = $('<div class="drop-content"></div>');
-		this.input = $('<input type="text" name="display-'+this.name+'" class="drop-result" autocomplete="off">');
-		this.btn = $('<a href="javascript:;" class="drop-btn">向下</a>');
-		this.hidden = $('<input type="hidden" class="drop-val" name="'+this.name+'" value="key2">');
+		this.input = this.editable ? $('<input type="text" name="display-'+this.name+'" class="drop-result" autocomplete="off">'):$('<input type="text" name="display-'+this.name+'" class="drop-result" disabled autocomplete="off">');;
+		this.btn = $('<a href="javascript:;" class="drop-btn">按钮</a>');
+		this.hidden = $('<input type="hidden" class="drop-val" name="'+this.name+'" value="">');
 		this.list = $('<ul class="drop-list none" tabindex="1"></ul>');
 		var li_tpl = '<li class="drop-item" value="{key}"><a href="#">{val}</a></li>',
 			li = '';
@@ -93,7 +114,12 @@ define(function(require, exports, module){
 			if(index >= len){index = 0;}
 			$a.eq(index).trigger('focus');
 		});
-
+		_this.btn.on('keydown', function(evt){
+			var e = evt||window.event;
+			if(e.keyCode == 40){
+				_this.list.find(".drop-item:not(.hide) a").eq(0).trigger("focus");
+			}
+		});
 		//点击输入框事件
 		_this.input.click(function(evt){
 			var e = evt || window.event;
@@ -129,10 +155,11 @@ define(function(require, exports, module){
 		});
 	};
 
-	function dropDown(data, name){
+	function dropDown(data, name, editable){
 		var container = this instanceof jQuery && this.length > 0 ? this : $('body');
-		return new dropdown(container, data, name);
+		return new dropdown(container, data, name, editable);
 	};
 	$.fn.dropDown = dropDown;
 	return dropDown;
 });
+
